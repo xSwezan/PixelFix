@@ -2,6 +2,7 @@
 
 const jimp = require("jimp");
 const Delaunay = require("d3-delaunay").Delaunay;
+const yesno = require("yesno")
 
 const neighborLocations = [
     [-1, -1],
@@ -17,6 +18,7 @@ const neighborLocations = [
 let argsArray = process.argv.slice(2);
 
 let dbgMode = false;
+let whiteOnly = false;
 
 for (let i = argsArray.length + 1; i >= 0; i--) {
     let arg = argsArray[i];
@@ -36,6 +38,11 @@ if (process.argv.length < 3) {
 let promises = [];
 for (let fileLocation of argsArray) {
     promises.push((async function() {
+        whiteOnly = await yesno({
+            question: "Is this image all white? y/n",
+            defaultValue: false
+        });
+
         let image = await jimp.read(fileLocation);
 
         let voronoiPoints = [];
@@ -43,9 +50,10 @@ for (let fileLocation of argsArray) {
         image.scan(0, 0, image.bitmap.width, image.bitmap.height, function(x, y, idx) {
             let alpha = this.bitmap.data[ idx + 3 ];
             if (alpha != 0) {
-                let red   = this.bitmap.data[ idx + 0 ];
-                let green = this.bitmap.data[ idx + 1 ];
-                let blue  = this.bitmap.data[ idx + 2 ];
+                let red   = (whiteOnly == true) ? 255 : this.bitmap.data[ idx + 0 ];
+                let green = (whiteOnly == true) ? 255 : this.bitmap.data[ idx + 1 ];
+                let blue  = (whiteOnly == true) ? 255 : this.bitmap.data[ idx + 2 ];
+
                 // Voronoi
                 for (let offset of neighborLocations) {
                     let neighborAlpha = this.bitmap.data[image.getPixelIndex(x + offset[0], y + offset[1]) + 3];
